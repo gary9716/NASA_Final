@@ -4,9 +4,12 @@ if (!shell.which('ps')) {
   shell.exit(1);
 }
 
-var numFields = 6;
+var numFields = 7;
 
-shell.exec('ps -exo user,pid,etime,%cpu,%mem,args', { silent: true }, function(code, output) {
+//'ps -eo state,pid,user,etime,%cpu,%mem,args --sort user' //output all processes information in standard format
+//'ps -eo state,pid,user,etime,%cpu,%mem,args --sort user | sed -n "/^Z.*/p"' //filter out zombie processes
+
+shell.exec('ps -eo state,pid,user,etime,%cpu,%mem,args --sort user', { silent: true }, function(code, output) {
   if(code == 0) { //successfully executed
     var linesOfData = output.split('\n');
     var allFieldNames = linesOfData[0].split(/[\s]+/);
