@@ -1,5 +1,6 @@
 //default values
-var checkingInterval = 20; //in seconds 
+var updatingInterval = 30;
+var checkingInterval = 60; //in seconds 
 var zombieThreshold = 10;
 
 if( process.argv.length > 4 ) {
@@ -20,7 +21,6 @@ if (!shell.which('ps')) {
 }
 
 var numFields = 7;
-
 //'ps -eo state,pid,user,etime,%cpu,%mem,args --sort user' //output all processes information in standard format
 //'ps -eo state,pid,user,etime,%cpu,%mem,args --sort user | sed -n "/^Z.*/p"' //filter out zombie processes
 
@@ -36,6 +36,7 @@ var parsePSResult = function(output) {
         for(var j = 0;j < numFields - 1;j++) {
           singleData[allFieldNames[j]] = allFields[j];
         }
+        
         var argsField = allFields[numFields - 1];
         for(var j = numFields;j < allFields.length;j++) {
           argsField = argsField.concat(' ', allFields[j]);
@@ -67,9 +68,9 @@ var updatePSInfo = function() {
     
 };
 
-updatePSInfo();
+updatePSInfo(); //init fetch
 
-setInterval(updatePSInfo, checkingInterval * 1000);
+setInterval(updatePSInfo, updatingInterval * 1000);
 
 setInterval(function(){
     shell.exec('ps -eo state,pid,user,etime,%cpu,%mem,args --sort user | sed -n "/^Z.*/p"', { silent: true }, function(code, output) {
