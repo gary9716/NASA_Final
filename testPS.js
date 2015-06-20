@@ -1,3 +1,16 @@
+//default values
+var checkingInterval = 20; //in seconds 
+var zombieThreshold = 10;
+
+if( process.argv.length > 4 ) {
+    checkingInterval = parseInt(process.argv[2]);
+    zombieThreshold = parseInt(process.argv[3]);
+}
+else if(process.argv.length > 3) {
+    checkingInterval = parseInt(process.argv[2]);
+}
+
+
 var express = require('express');
 var app = express();
 var shell = require('shelljs');
@@ -10,47 +23,53 @@ var numFields = 7;
 
 //'ps -eo state,pid,user,etime,%cpu,%mem,args --sort user' //output all processes information in standard format
 //'ps -eo state,pid,user,etime,%cpu,%mem,args --sort user | sed -n "/^Z.*/p"' //filter out zombie processes
-app.get('/parsedPs', function(req,res) {
-    shell.exec('ps -eo state,pid,user,etime,%cpu,%mem,args --sort user', { silent: true }, function(code, output) {
-      if(code == 0) { //successfully executed
-        var linesOfData = output.split('\n');
-        var allFieldNames = linesOfData[0].split(/[\s]+/);
-        var allData = [];
-        for(var i = 1;i < linesOfData.length;i++) {
-          var singleData = {};
-          var allFields = linesOfData[i].split(/[\s]+/);
-          if(allFields.length >= numFields) {
-            for(var j = 0;j < numFields - 1;j++) {
-              singleData[allFieldNames[j]] = allFields[j];
-            }
-            var argsField = allFields[numFields - 1];
-            for(var j = numFields;j < allFields.length;j++) {
-              argsField = argsField.concat(' ', allFields[j]);
-            }
-            singleData[allFieldNames[numFields - 1]] = argsField;
-            allData.push(singleData);
-          }
+
+var parsePSResult = function(output) {
+  
+    var linesOfData = output.split('\n');
+    var allFieldNames = linesOfData[0].split(/[\s]+/);
+    var allData = [];
+    for(var i = 1;i < linesOfData.length;i++) {
+      var singleData = {};
+      var allFields = linesOfData[i].split(/[\s]+/);
+      if(allFields.length >= numFields) {
+        for(var j = 0;j < numFields - 1;j++) {
+          singleData[allFieldNames[j]] = allFields[j];
         }
-        var strToTransmit = JSON.stringify(allData);
-        //console.log(strToTransmit);
-        var objParsed = JSON.parse(strToTransmit);
-        //console.log(objParsed);
-        res.json(objParsed);
+        var argsField = allFields[numFields - 1];
+        for(var j = numFields;j < allFields.length;j++) {
+          argsField = argsField.concat(' ', allFields[j]);
+        }
+        singleData[allFieldNames[numFields - 1]] = argsField;
+        allData.push(singleData);
       }
-    });
+    }
+
+    //var strToTransmit = JSON.stringify(allData);
+    //console.log(strToTransmit);
+    //var objParsed = JSON.parse(strToTransmit);
+
+    return allData;
+  
+};
+
+var cachedPSInfo = null;
+
+var updatePSInfo = function() {
+    
+    shell.exec('ps -eo state,pid,user,etime,%cpu,%mem,args --sort user', { silent: true }, function(code, output) {
+    
+    if(code == 0) { //successfully executed
+        cachedPSInfo = parsePSResult(output);
+    }
+
 });
+    
+};
 
-//default values
-var checkingInterval = 30; //in seconds 
-var zombieThreshold = 10;
+updatePSInfo();
 
-if( process.argv.length > 4 ) {
-    checkingInterval = parseInt(process.argv[2]);
-    zombieThreshold = parseInt(process.argv[3]);
-}
-else if(process.argv.length > 3) {
-    checkingInterval = parseInt(process.argv[2]);
-}
+setInterval(updatePSInfo, checkingInterval * 1000);
 
 setInterval(function(){
     shell.exec('ps -eo state,pid,user,etime,%cpu,%mem,args --sort user | sed -n "/^Z.*/p"', { silent: true }, function(code, output) {
@@ -68,6 +87,12 @@ setInterval(function(){
     });
 }, checkingInterval * 1000);
 
+
+//http server logic
+
+app.get('/parsedPs', function(req,res) {
+    res.json(cachedPSInfo);
+});
 
 var httpServer = app.listen(8000, function() {
     var serverPort = httpServer.address().port;
