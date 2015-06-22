@@ -90,7 +90,7 @@ setInterval(function(){
             if(numZProcess >= zombieThreshold) {
                 console.log('reach zombie threshold');
                 var message = { 
-                    "EventCode" : 1, //number of zombie process reaches threshold
+                    "EventCode" : 0, //number of zombie process reaches threshold
                     "#ZPS" : numZProcess
                 };
                 pubnub.publish({ 
