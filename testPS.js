@@ -11,6 +11,12 @@ else if(process.argv.length > 3) {
     checkingInterval = parseInt(process.argv[2]);
 }
 
+var pubnubChannel = 'PSInfo';
+var pubnub = require("pubnub")({
+    ssl           : false,
+    publish_key   : "pub-c-071abdd4-bbd4-4387-98e1-aab8abf4744a",
+    subscribe_key : "sub-c-0caf38e0-1403-11e5-af43-0619f8945a4f"
+});
 
 var express = require('express');
 var app = express();
@@ -83,15 +89,37 @@ setInterval(function(){
             console.log('current # zombie:' + numZProcess);
             if(numZProcess >= zombieThreshold) {
                 console.log('reach zombie threshold');
+                var message = { 
+                    "EventCode" : 1, //number of zombie process reaches threshold
+                    "#ZPS" : numZProcess
+                };
+                pubnub.publish({ 
+                    channel   : pubnubChannel,
+                    message   : message,
+                    callback  : function(e) { console.log( "SUCCESS!", e ); },
+                    error     : function(e) { console.log( "FAILED! RETRY PUBLISH!", e ); }
+                });
             }
         }
     });
 }, checkingInterval * 1000);
 
+//pubnub.subscribe({
+//    channel  : pubnubChannel,
+//    callback : function(message) {
+//        console.log( " > ", message );
+//    }
+//});
+
 
 //http server logic
 
-app.get('/parsedPs', function(req,res) {
+app.get('/parsedPS', function(req,res) {
+    res.json(cachedPSInfo);
+});
+
+app.get('/parsedPSUncached', function(req,res) {
+    updatePSInfo();
     res.json(cachedPSInfo);
 });
 
