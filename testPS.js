@@ -3,11 +3,11 @@ var updatingInterval = 30;
 var checkingInterval = 60; //in seconds 
 var zombieThreshold = 10;
 
-if( process.argv.length > 4 ) {
+if( process.argv.length > 3 ) {
     checkingInterval = parseInt(process.argv[2]);
     zombieThreshold = parseInt(process.argv[3]);
 }
-else if(process.argv.length > 3) {
+else if(process.argv.length > 2) {
     checkingInterval = parseInt(process.argv[2]);
 }
 
